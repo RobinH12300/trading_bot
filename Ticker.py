@@ -8,16 +8,18 @@ from Trader import Trader
 
 
 class Ticker:
-
     time = ""
     timep = ""
     mma1 = 0
     mma2 = 0
     symbol = ""
+    lot = 0
 
-    def __init__(self, symbol, timeperiod, mma1, mma2):
+    def __init__(self, symbol, timeperiod, mma1, mma2, lot):
         self.timep = timeperiod
         self.symbol = symbol
+        self.lot = lot
+
         if timeperiod == "1M":
             self.time = mt5.TIMEFRAME_M1
         elif timeperiod == "5M":
@@ -36,6 +38,9 @@ class Ticker:
         self.mma1 = mma1
         self.mma2 = mma2
 
+    def returnLot(self):
+        return self.lot
+
     def InitTicks(self):
         rates = mt5.copy_rates_from_pos(self.symbol, self.time, 0, self.mma2)
         rates_frame = pd.DataFrame(rates)
@@ -44,8 +49,9 @@ class Ticker:
 
     def getCurrentTick(self):
         self.timep = self.timep.replace("M", "")
-        #TODO Wenn Std enthält oder Tag
-        utc_from = datetime.datetime.now(pytz.timezone('Europe/Vienna')) - datetime.timedelta(hours=0, minutes=int(self.timep))
+        # TODO Wenn Std enthält oder Tag
+        utc_from = datetime.datetime.now(pytz.timezone('Europe/Vienna')) - datetime.timedelta(hours=0,
+                                                                                              minutes=int(self.timep))
         utc_to = datetime.datetime.now(pytz.timezone('Europe/Vienna'))
 
         rates = mt5.copy_rates_range(self.symbol, self.time, utc_from, utc_to)
@@ -62,13 +68,12 @@ class Ticker:
         list5 = []
         list25 = []
 
-        for i in range(self.mma2-1):
+        for i in range(self.mma2 - 1):
             mma5.append(0)
             mma25.append(0)
 
-
         for i in range(self.mma1):
-            list5.append(price.iloc[-self.mma1+i]["close"])
+            list5.append(price.iloc[-self.mma1 + i]["close"])
 
             if len(list5) >= self.mma1:
                 avg5 = sum(list5) / self.mma1
@@ -78,13 +83,12 @@ class Ticker:
         price[self.mma1] = mma5
 
         for i in range(self.mma2):
-            list25.append(price.iloc[-self.mma2+i]["close"])
+            list25.append(price.iloc[-self.mma2 + i]["close"])
 
             if len(list25) >= self.mma2:
                 avg25 = sum(list25) / self.mma2
                 mma25.append(avg25)
                 list25.pop(0)
-
 
         price[self.mma2] = mma25
 
@@ -101,7 +105,7 @@ class Ticker:
         counter = 1
         for i in range(len(price.tail(self.mma2))):
             list25.append(price.iloc[counter]["close"])
-            counter -=1
+            counter -= 1
 
         avg5 = sum(list5) / self.mma1
         avg25 = sum(list25) / self.mma2
@@ -122,15 +126,15 @@ class Ticker:
 
         if listMMA5[0] < listMMA25[0] and listMMA5[1] < listMMA25[1] and listMMA5[2] > listMMA25[2]:
             if depot.position == 0:
-                result = trader.sendOrder("long", 0.1, 100)
+                result = trader.sendOrder("long", self.lot, 150)
                 depot.inceasePos()
             else:
-                trader.closeOrder("short", 0.1, result.order)
-                result = trader.sendOrder("long", 0.1, 100)
+                trader.closeOrder("short", self.lot, result.order)
+                result = trader.sendOrder("long", self.lot, 150)
         elif listMMA5[0] > listMMA25[0] and listMMA5[1] > listMMA25[1] and listMMA5[2] < listMMA25[2]:
             if depot.position == 0:
-                result = trader.sendOrder("short", 0.1, 100)
+                result = trader.sendOrder("short", self.lot, 150)
                 depot.inceasePos()
             else:
-                trader.closeOrder("long", 0.1, result.order)
-                result = trader.sendOrder("short", 0.1, 100)
+                trader.closeOrder("long", self.lot, result.order)
+                result = trader.sendOrder("short", self.lot, 150)

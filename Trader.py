@@ -50,7 +50,7 @@ class Trader:
                 "volume": lot,
                 "type": mt5.ORDER_TYPE_SELL,
                 "price": self.short_price,
-                "sl": self.short_price - sl * self.point,
+                "sl": self.short_price + sl * self.point,
                 "deviation": self.deviation,
                 "magic": 234000,
                 "comment": "python script open",
@@ -90,6 +90,8 @@ class Trader:
 
         self.checkOrder(direction, result, lot)
 
+        return result
+
     def closeOrder(self, previous, lot, id):
         if previous == "buy":
             request = {
@@ -125,4 +127,4 @@ class Trader:
         result = mt5.order_send(request)
 
         self.checkOrder(previous, result, lot)
-        print("close position #{}: sell {} {} lots at {} with deviation={} points".format(id, self.symbol, lot))
+        print("close position #")
