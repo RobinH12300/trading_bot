@@ -51,10 +51,10 @@ class Ticker:
         self.timep = self.timep.replace("M", "")
         # TODO Wenn Std enthält oder Tag
         utc_from = datetime.datetime.now(pytz.timezone('Europe/Vienna')) - datetime.timedelta(hours=0,
-                                                                                              minutes=int(self.timep))
+                                                                                              minutes=15)
         utc_to = datetime.datetime.now(pytz.timezone('Europe/Vienna'))
 
-        rates = mt5.copy_rates_range(self.symbol, self.time, utc_from, utc_to)
+        rates = mt5.copy_rates_from_pos(self.symbol, self.time, 0, 1)
         rates_frame = pd.DataFrame(rates)
         rates_frame[self.mma1] = 0
         rates_frame[self.mma2] = 0

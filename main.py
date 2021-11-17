@@ -6,6 +6,7 @@ from Depot import Depot
 from Ticker import Ticker
 from Trader import Trader
 import pandas as pd
+
 # 41466651
 # u65pAE55umE5
 # AdmiralMarkets-Demo
@@ -13,7 +14,8 @@ import pandas as pd
 username = 41466651
 password = "u65pAE55umE5"
 server = "AdmiralMarkets-Demo"
-timeInSec = 900
+Minutes = 5
+timeInSec = 60 * Minutes
 tradinglist = ["[DJI30]"]
 traderlist = []
 tickerlist = []
@@ -35,46 +37,37 @@ def init(username, pw, servername):
 
 def trade(tickerlist, traderlist, pricelists):
     print("start trading")
-    c = 0
+    delay = 0
     while True:
-        while datetime.datetime.now().minute not in {0, 15, 30, 45} and datetime.datetime.now().second not in {0}:
-            # Wait 1 second until we are synced up with the 'every 15 minutes' clock
-            time.sleep(1)
-        c += 1
-        if c == 1:
-            for i in range(len(pricelists)):
-                pricelists[i] = pricelists[i].append(tickerlist[i].getCurrentTick(), ignore_index=True)
+        print("Delay: " + str(timeInSec - delay))
+        time.sleep(timeInSec - delay)
+        delay = datetime.datetime.now().second
 
-            time.sleep(1)
+        for i in range(len(pricelists)):
+            pricelists[i] = pricelists[i].append(tickerlist[i].getCurrentTick(), ignore_index=True)
 
-            for i in range(len(pricelists)):
-                pricelists[i] = tickerlist[i].calculateTickMMA(pricelists[i])
+        for i in range(len(pricelists)):
+            pricelists[i] = tickerlist[i].calculateTickMMA(pricelists[i])
 
-            time.sleep(1)
+        for i in range(len(pricelists)):
+            print(pricelists[i].tail(3))
 
-            for i in range(len(pricelists)):
-                print(pricelists[i].tail(3))
-
-            """Fehlerprüfung"""
-            for i in range(len(pricelists)):
-                 if len(pricelists[i]) >= 27:
-                    pricelists[i].drop(index=pricelists[i].index[0], axis=0, inplace=True)
-                    pricelists[i] = tickerlist[i].calculateTickMMA(pricelists[i])
-                    print("gekürzt:")
-
-                    # create DataFrame out of the obtained data
-                    rates_frame = pd.DataFrame(pricelists[i])
-                    # convert time in seconds into the 'datetime' format
-                    rates_frame['time'] = pd.to_datetime(rates_frame['time'], unit='s')
-                    print(rates_frame)
-
-
-            for i in range(len(pricelists)):
-                tickerlist[i].proofCross(traderlist[i], pricelists[i], depot)
+        """Fehlerprüfung"""
+        for i in range(len(pricelists)):
+            if len(pricelists[i]) >= 27:
                 pricelists[i].drop(index=pricelists[i].index[0], axis=0, inplace=True)
+                pricelists[i] = tickerlist[i].calculateTickMMA(pricelists[i])
+                print("gekürzt:")
 
-        time.sleep(800)
-        c -= 1
+                # create DataFrame out of the obtained data
+                rates_frame = pd.DataFrame(pricelists[i])
+                # convert time in seconds into the 'datetime' format
+                rates_frame['time'] = pd.to_datetime(rates_frame['time'], unit='s')
+                print(rates_frame)
+
+        for i in range(len(pricelists)):
+            tickerlist[i].proofCross(traderlist[i], pricelists[i], depot)
+            pricelists[i].drop(index=pricelists[i].index[0], axis=0, inplace=True)
 
 
 def starting():
@@ -82,7 +75,7 @@ def starting():
     init(username, password, server)
 
     for element in tradinglist:
-        tickerlist.append(Ticker(element, "15M", 5, 25, 1.0))
+        tickerlist.append(Ticker(element, "5M", 5, 25, 1.0))
         traderlist.append(Trader(element))
 
     for i in range(len(tradinglist)):
@@ -91,11 +84,6 @@ def starting():
     for i in range(len(pricelists)):
         pricelists[i] = tickerlist[i].calculateStartMMA(pricelists[i])
 
-        #rates_frame = pd.DataFrame(pricelists[i])
-        # convert time in seconds into the 'datetime' format
-        #rates_frame['time'] = pd.to_datetime(rates_frame['time'], unit='s')
-        #print(rates_frame)
-    time.sleep(600)
     trade(tickerlist, traderlist, pricelists)
 
 
@@ -104,7 +92,7 @@ def shutdown():
     if len(mt5.positions_get()) > 0:
         for i in range(len(tradinglist)):
             position = mt5.positions_get(group=traderlist[i])
-            if position == None:
+            if position is None:
                 mt5.shutdown()
             else:
                 position_id = depot.getPositionID(position)
@@ -119,11 +107,10 @@ def shutdown():
 depot = Depot(mt5.symbols_get())
 c = 0
 if c == 0:
-    while datetime.datetime.now().minute not in {0, 15, 30, 45}:
-    # Wait 1 second until we are synced up with the 'every 15 minutes' clock
+    while datetime.datetime.now().minute not in {0, 55, 30, 45}:
+        # Wait 1 second until we are synced up with the 'every 15 minutes' clock
         time.sleep(1)
 print("START")
-c +=1
+c += 1
 if c == 1:
     starting()
-#START 17 UHR
